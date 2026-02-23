@@ -1,10 +1,13 @@
 import { DataSource } from "typeorm";
 
+const databasePath = process.env.DB_PATH || "./db.sqlite";
+const isTestEnv = process.env.NODE_ENV === "test";
+
 const datasource = new DataSource({
   type: "better-sqlite3",
-  database: "./db.sqlite",
+  database: databasePath,
   entities: ["./src/entities/**/*.{js,ts}"],
-  logging: true,
+  logging: !isTestEnv,
   synchronize: true,
 });
 

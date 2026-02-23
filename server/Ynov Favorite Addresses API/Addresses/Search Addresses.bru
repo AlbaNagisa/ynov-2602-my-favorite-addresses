@@ -1,0 +1,25 @@
+meta {
+  name: Search Addresses
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/addresses/searches
+  body: json
+  auth: none
+}
+
+headers {
+  cookie: token={{token}}
+}
+
+body:json {
+  {
+    "radius": 50,
+    "from": {
+      "lat": 43.6045,
+      "lng": 1.4442
+    }
+  }
+}
