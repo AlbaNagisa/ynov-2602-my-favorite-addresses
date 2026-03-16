@@ -40,6 +40,33 @@ addressesRouter.get("/", isAuthorized, async (req, res) => {
   return res.json({ items: addresses });
 });
 
+addressesRouter.delete("/:id", isAuthorized, async (req, res) => {
+  const addressId = Number(req.params.id);
+
+  if (!Number.isInteger(addressId) || addressId <= 0) {
+    return res.status(400).json({ message: "address id must be a positive integer" });
+  }
+
+  const user = await getUserFromRequest(req);
+  if (!user) {
+    return res.status(403).json({ message: "access denied" });
+  }
+
+  const address = await Address.findOne({
+    where: {
+      id: addressId,
+      user: { id: user.id },
+    },
+  });
+
+  if (!address) {
+    return res.status(404).json({ message: "address not found" });
+  }
+
+  await address.remove();
+  return res.status(204).send();
+});
+
 addressesRouter.post("/searches", isAuthorized, async (req, res) => {
   const radius = req.body.radius;
 

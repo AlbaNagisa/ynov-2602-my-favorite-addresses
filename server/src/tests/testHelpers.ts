@@ -6,7 +6,7 @@ import datasource from "../datasource";
 import { Address } from "../entities/Address";
 import { User } from "../entities/User";
 
-type HttpMethod = "get" | "post";
+type HttpMethod = "get" | "post" | "delete";
 type TestRouteHandler = (req: any, res: any, next?: any) => unknown | Promise<unknown>;
 
 export function getRouteHandler(
@@ -32,6 +32,7 @@ export function createMockRes() {
   const res: any = {};
   res.status = jest.fn(() => res);
   res.json = jest.fn(() => res);
+  res.send = jest.fn(() => res);
   res.cookie = jest.fn(() => res);
   return res;
 }
