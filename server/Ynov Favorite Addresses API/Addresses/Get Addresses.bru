@@ -1,0 +1,15 @@
+meta {
+  name: Get Addresses
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/addresses
+  body: none
+  auth: none
+}
+
+headers {
+  cookie: token={{token}}
+}

@@ -1,0 +1,28 @@
+meta {
+  name: Patch Address - Invalid Payload
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/addresses/{{addressId}}
+  body: json
+  auth: none
+}
+
+headers {
+  cookie: token={{token}}
+}
+
+body:json {
+  {
+    "name": "",
+    "description": "Description non vide"
+  }
+}
+
+script:post-response {
+  if (res.status !== 400) {
+    throw new Error("Expected status 400");
+  }
+}

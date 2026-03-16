@@ -1,0 +1,23 @@
+meta {
+  name: Create Address
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/addresses
+  body: json
+  auth: none
+}
+
+headers {
+  cookie: token={{token}}
+}
+
+body:json {
+  {
+    "searchWord": "Ynov Toulouse",
+    "name": "Campus",
+    "description": "Mon école"
+  }
+}
