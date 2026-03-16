@@ -47,6 +47,33 @@ describe("Users routes", () => {
     expect(createdUser.hashedPassword).not.toBe("secret123");
   });
 
+  it("POST /api/users returns 400 when email format is invalid", async () => {
+    const req: any = {
+      body: { email: "not-an-email", password: "secret123" },
+    };
+    const res = createMockRes();
+
+    await createUserHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      message: "email must be a valid email address",
+    });
+  });
+
+  it("POST /api/users returns 409 when email is already used", async () => {
+    await createUser("duplicate@example.com", "secret123");
+    const req: any = {
+      body: { email: "duplicate@example.com", password: "another-secret" },
+    };
+    const res = createMockRes();
+
+    await createUserHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith({ message: "email already used" });
+  });
+
   it("POST /api/users/tokens returns 400 on wrong credentials", async () => {
     await createUser("john@example.com", "secret123");
     const req: any = {
