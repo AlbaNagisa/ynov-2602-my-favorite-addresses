@@ -1,0 +1,32 @@
+meta {
+  name: Patch Address - Not Found
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/addresses/{{unknownAddressId}}
+  body: json
+  auth: none
+}
+
+headers {
+  cookie: token={{token}}
+}
+
+body:json {
+  {
+    "name": "Campus Unknown",
+    "description": "Adresse inexistante"
+  }
+}
+
+script:post-response {
+  if (res.status !== 404) {
+    throw new Error("Expected status 404");
+  }
+
+  if (!res.body || res.body.message !== "address not found") {
+    throw new Error("Expected message 'address not found'");
+  }
+}

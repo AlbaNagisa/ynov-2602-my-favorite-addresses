@@ -1,0 +1,40 @@
+meta {
+  name: Patch Address - Success
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/addresses/{{addressId}}
+  body: json
+  auth: none
+}
+
+headers {
+  cookie: token={{token}}
+}
+
+body:json {
+  {
+    "name": "Campus Updated",
+    "description": "Description mise a jour"
+  }
+}
+
+script:post-response {
+  if (res.status !== 200) {
+    throw new Error("Expected status 200");
+  }
+
+  if (!res.body || !res.body.item) {
+    throw new Error("Expected response body to contain item");
+  }
+
+  if (res.body.item.name !== "Campus Updated") {
+    throw new Error("Expected item.name to be updated");
+  }
+
+  if (res.body.item.description !== "Description mise a jour") {
+    throw new Error("Expected item.description to be updated");
+  }
+}
