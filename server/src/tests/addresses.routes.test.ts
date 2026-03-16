@@ -10,6 +10,8 @@ describe("Addresses routes", () => {
   const createAddressHandler = getRouteHandler(addressesRouter, "post", "/", 1);
   const listAddressesMiddleware = getRouteHandler(addressesRouter, "get", "/", 0);
   const listAddressesHandler = getRouteHandler(addressesRouter, "get", "/", 1);
+  const deleteAddressMiddleware = getRouteHandler(addressesRouter, "delete", "/:id", 0);
+  const deleteAddressHandler = getRouteHandler(addressesRouter, "delete", "/:id", 1);
   const searchAddressesHandler = getRouteHandler(addressesRouter, "post", "/searches", 1);
 
   beforeEach(async () => {
@@ -27,6 +29,18 @@ describe("Addresses routes", () => {
     const next = jest.fn();
 
     await listAddressesMiddleware(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ message: "access denied" });
+  });
+
+  it("DELETE /api/addresses/:id middleware returns 403 without token", async () => {
+    const req: any = { headers: {}, cookies: {}, params: { id: "1" } };
+    const res = createMockRes();
+    const next = jest.fn();
+
+    await deleteAddressMiddleware(req, res, next);
 
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(403);
@@ -185,5 +199,90 @@ describe("Addresses routes", () => {
     expect(res.json).toHaveBeenCalledWith({
       message: "radius is required, must be a positive number",
     });
+  });
+
+  it("DELETE /api/addresses/:id returns 400 when id is invalid", async () => {
+    const user = await createUser("delete-invalid-id@example.com", "secret123");
+    const token = makeTokenForUser(user.id);
+    const req: any = {
+      headers: { authorization: `Bearer ${token}` },
+      cookies: {},
+      params: { id: "abc" },
+    };
+    const res = createMockRes();
+
+    await deleteAddressHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      message: "address id must be a positive integer",
+    });
+  });
+
+  it("DELETE /api/addresses/:id returns 404 when address is not found", async () => {
+    const user = await createUser("delete-not-found@example.com", "secret123");
+    const token = makeTokenForUser(user.id);
+    const req: any = {
+      headers: { authorization: `Bearer ${token}` },
+      cookies: {},
+      params: { id: "9999" },
+    };
+    const res = createMockRes();
+
+    await deleteAddressHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ message: "address not found" });
+  });
+
+  it("DELETE /api/addresses/:id returns 404 when address belongs to another user", async () => {
+    const owner = await createUser("delete-owner@example.com", "secret123");
+    const otherUser = await createUser("delete-other@example.com", "secret123");
+    const token = makeTokenForUser(otherUser.id);
+
+    const address = new Address();
+    address.name = "Private";
+    address.lng = 1.11;
+    address.lat = 2.22;
+    address.user = owner;
+    await address.save();
+
+    const req: any = {
+      headers: { authorization: `Bearer ${token}` },
+      cookies: {},
+      params: { id: String(address.id) },
+    };
+    const res = createMockRes();
+
+    await deleteAddressHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ message: "address not found" });
+  });
+
+  it("DELETE /api/addresses/:id removes the address and returns 204", async () => {
+    const user = await createUser("delete-success@example.com", "secret123");
+    const token = makeTokenForUser(user.id);
+
+    const address = new Address();
+    address.name = "To delete";
+    address.lng = 3.14;
+    address.lat = 2.72;
+    address.user = user;
+    await address.save();
+
+    const req: any = {
+      headers: { authorization: `Bearer ${token}` },
+      cookies: {},
+      params: { id: String(address.id) },
+    };
+    const res = createMockRes();
+
+    await deleteAddressHandler(req, res);
+    const deletedAddress = await Address.findOneBy({ id: address.id });
+
+    expect(deletedAddress).toBeNull();
+    expect(res.status).toHaveBeenCalledWith(204);
+    expect(res.send).toHaveBeenCalled();
   });
 });
