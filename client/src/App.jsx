@@ -54,6 +54,8 @@ function AddressList({ items }) {
 
 export default function App() {
   const [token, setToken] = useState(getInitialToken);
+  const [activeAuthTab, setActiveAuthTab] = useState("signup");
+  const [toast, setToast] = useState({ message: "", isError: false });
   const [status, setStatus] = useState(
     getInitialToken() ? "Token detecte dans le navigateur. Tu peux charger ton profil." : "Pret."
   );
@@ -78,6 +80,10 @@ export default function App() {
     setStatusError(isError);
   }
 
+  function showToast(message, isError = false) {
+    setToast({ message, isError });
+  }
+
   async function handleRegister(event) {
     event.preventDefault();
     try {
@@ -86,9 +92,11 @@ export default function App() {
         body: JSON.stringify(register),
       });
       setStatusPayload({ action: "register", payload });
+      showToast("Inscription reussie.");
       setRegister({ email: "", password: "" });
     } catch (error) {
       setStatusPayload({ action: "register", error: error.message }, true);
+      showToast(`Echec inscription: ${error.message}`, true);
     }
   }
 
@@ -103,9 +111,11 @@ export default function App() {
       localStorage.setItem(tokenKey, nextToken);
       setToken(nextToken);
       setStatusPayload({ action: "login", payload });
+      showToast("Connexion reussie.");
       setLogin({ email: "", password: "" });
     } catch (error) {
       setStatusPayload({ action: "login", error: error.message }, true);
+      showToast(`Echec connexion: ${error.message}`, true);
     }
   }
 
@@ -131,6 +141,7 @@ export default function App() {
     setMe(null);
     setAddresses([]);
     setSearchItems([]);
+    setToast({ message: "", isError: false });
     setStatusPayload("Token supprime localement.");
   }
 
@@ -216,53 +227,99 @@ export default function App() {
         <p>Inscris-toi, connecte-toi, sauvegarde des adresses et filtre-les par distance.</p>
       </header>
 
+      {toast.message ? (
+        <section className="card status">
+          <h2>Toast</h2>
+          <pre
+            className="output"
+            data-testid="toast-message"
+            style={{ color: toast.isError ? "#b91c1c" : "#166534" }}
+          >
+            {toast.message}
+          </pre>
+        </section>
+      ) : null}
+
       <main className="layout">
         <section className="card auth">
           <h2>Authentification</h2>
-          <form className="stack" onSubmit={handleRegister}>
-            <h3>Creer un compte</h3>
-            <input
-              name="email"
-              type="email"
-              placeholder="Email"
-              value={register.email}
-              onChange={(event) => setRegister((prev) => ({ ...prev, email: event.target.value }))}
-              required
-            />
-            <input
-              name="password"
-              type="password"
-              placeholder="Mot de passe"
-              minLength="4"
-              value={register.password}
-              onChange={(event) =>
-                setRegister((prev) => ({ ...prev, password: event.target.value }))
-              }
-              required
-            />
-            <button type="submit">Creer</button>
-          </form>
+          <div className="stack" role="tablist" aria-label="Choix auth">
+            <button
+              type="button"
+              data-testid="signup-tab"
+              onClick={() => setActiveAuthTab("signup")}
+              className={activeAuthTab === "signup" ? "" : "ghost"}
+            >
+              Signup
+            </button>
+            <button
+              type="button"
+              data-testid="login-tab"
+              onClick={() => setActiveAuthTab("login")}
+              className={activeAuthTab === "login" ? "" : "ghost"}
+            >
+              Login
+            </button>
+          </div>
 
-          <form className="stack" onSubmit={handleLogin}>
-            <h3>Se connecter</h3>
-            <input
-              name="email"
-              type="email"
-              placeholder="Email"
-              value={login.email}
-              onChange={(event) => setLogin((prev) => ({ ...prev, email: event.target.value }))}
-              required
-            />
-            <input
-              name="password"
-              type="password"
-              placeholder="Mot de passe"
-              value={login.password}
-              onChange={(event) => setLogin((prev) => ({ ...prev, password: event.target.value }))}
-              required
-            />
-            <button type="submit">Connexion</button>
-          </form>
+          {activeAuthTab === "signup" ? (
+            <form className="stack" onSubmit={handleRegister} data-testid="signup-form">
+              <h3>Creer un compte</h3>
+              <input
+                name="email"
+                data-testid="signup-email"
+                type="email"
+                placeholder="Email"
+                value={register.email}
+                onChange={(event) =>
+                  setRegister((prev) => ({ ...prev, email: event.target.value }))
+                }
+                required
+              />
+              <input
+                name="password"
+                data-testid="signup-password"
+                type="password"
+                placeholder="Mot de passe"
+                minLength="4"
+                value={register.password}
+                onChange={(event) =>
+                  setRegister((prev) => ({ ...prev, password: event.target.value }))
+                }
+                required
+              />
+              <button type="submit" data-testid="signup-submit">
+                Creer
+              </button>
+            </form>
+          ) : (
+            <form className="stack" onSubmit={handleLogin} data-testid="login-form">
+              <h3>Se connecter</h3>
+              <input
+                name="email"
+                data-testid="login-email"
+                type="email"
+                placeholder="Email"
+                value={login.email}
+                onChange={(event) => setLogin((prev) => ({ ...prev, email: event.target.value }))}
+                required
+              />
+              <input
+                name="password"
+                data-testid="login-password"
+                type="password"
+                placeholder="Mot de passe"
+                value={login.password}
+                onChange={(event) =>
+                  setLogin((prev) => ({ ...prev, password: event.target.value }))
+                }
+                required
+              />
+              <button type="submit" data-testid="login-submit">
+                Connexion
+              </button>
+            </form>
+          )}
 
           <div className="stack">
             <button type="button" onClick={handleMe} disabled={!isAuthenticated}>
@@ -277,6 +334,11 @@ export default function App() {
 
         {isAuthenticated ? (
           <>
+            <section className="card">
+              <h2 data-testid="dashboard-title">Dashboard</h2>
+              <p>Utilisateur connecte.</p>
+            </section>
+
             <section className="card">
               <h2>Mes adresses</h2>
               <form className="stack" onSubmit={handleCreateAddress}>
