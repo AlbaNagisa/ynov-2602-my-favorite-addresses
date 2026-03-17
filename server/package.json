@@ -5,7 +5,8 @@
   "license": "MIT",
   "scripts": {
     "dev": "nodemon src/index.ts",
-    "test": "jest --watchman=false"
+    "test": "jest --watchman=false",
+    "test:coverage": "jest --watchman=false --coverage"
   },
   "dependencies": {
     "argon2": "^0.44.0",
