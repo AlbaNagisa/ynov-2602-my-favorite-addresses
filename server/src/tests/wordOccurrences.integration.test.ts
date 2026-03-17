@@ -1,5 +1,5 @@
-import express from "express";
-import request from "supertest";
+import { Router } from "express";
+import { createMockRes } from "./testHelpers";
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -11,11 +11,10 @@ function countWordOccurrences(text: string, word: string): number {
   return matches ? matches.length : 0;
 }
 
-function createWordCountApp() {
-  const app = express();
-  app.use(express.json());
+function createWordCountRouter() {
+  const router = Router();
 
-  app.post("/count-occurrences", (req, res) => {
+  router.post("/count-occurrences", (req, res) => {
     const text = req.body?.text;
     const word = req.body?.word;
 
@@ -32,31 +31,51 @@ function createWordCountApp() {
     });
   });
 
-  return app;
+  return router;
+}
+
+function getPostHandler(router: Router, path: string) {
+  const layer = (router as any).stack.find(
+    (entry: any) => entry.route?.path === path && entry.route?.methods?.post,
+  );
+
+  if (!layer) {
+    throw new Error(`Route POST ${path} not found`);
+  }
+
+  return layer.route.stack[0].handle as (req: any, res: any) => unknown | Promise<unknown>;
 }
 
 describe("Word occurrences mini API", () => {
   it("POST /count-occurrences returns the number of occurrences", async () => {
-    const app = createWordCountApp();
-
-    const response = await request(app).post("/count-occurrences").send({
+    const router = createWordCountRouter();
+    const handler = getPostHandler(router, "/count-occurrences");
+    const req: any = {
       text: "test test TEST tester re-test test",
       word: "test",
-    });
+    };
+    req.body = { text: req.text, word: req.word };
+    const res = createMockRes();
 
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual({ count: 5 });
+    await handler(req, res);
+
+    expect(res.json).toHaveBeenCalledWith({ count: 5 });
   });
 
   it("POST /count-occurrences returns 400 when payload is invalid", async () => {
-    const app = createWordCountApp();
+    const router = createWordCountRouter();
+    const handler = getPostHandler(router, "/count-occurrences");
+    const req: any = {
+      body: {
+        text: "anything",
+        word: "",
+      },
+    };
+    const res = createMockRes();
 
-    const response = await request(app).post("/count-occurrences").send({
-      text: "anything",
-      word: "",
-    });
+    await handler(req, res);
 
-    expect(response.status).toBe(400);
-    expect(response.body).toEqual({ message: "text and word are required" });
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: "text and word are required" });
   });
 });
